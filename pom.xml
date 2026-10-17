@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>kz.assem</groupId>
-    <artifactId>assignment4-facade-online-banking</artifactId>
+    <artifactId>assignment4-facade-telemedicine</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>

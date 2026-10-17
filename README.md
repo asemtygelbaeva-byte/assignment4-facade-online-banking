@@ -1,110 +1,84 @@
-# Assignment 4 Facade Over Online Banking
+# Assignment 4: Facade over Telemedicine
 
 Student: Assem Tugelbay  
 Group: SE-2540  
-Domain: Online Banking, individual variant 2
+Topic: 19 — Telemedicine
 
-This project demonstrates the Facade pattern over three independent banking subsystems. The client starts one transfer operation, while the facade coordinates Account Ledger, Compliance Checker and Settlement Confirmer in the order A -> B -> C.
+The application books one telemedicine consultation through three independent subsystems. The client calls one facade, while the facade coordinates the assigned workflow A → B → C:
 
-The project is intentionally small and uses only Java 17, Maven, JUnit 5 and JaCoCo. Each subsystem has its own entity, business logic class and persistence gateway. State is saved as plain CSV files in `data/`, so it remains after the program is closed and restarted.
+1. Appointment Scheduler and Patient Record hold an appointment.
+2. Video Call Manager starts the call and saves session notes.
+3. E-Prescription Service sends the prescription and Billing finalizes the visit.
 
-## Run the application
+The project uses Java 17, Maven, JUnit 5 and CSV files in `data/`. Each subsystem has its own entity, service and persistence gateway. No subsystem imports another subsystem.
+
+## Run
 
 ```bash
 mvn -q compile exec:java
 ```
 
-The CLI menu can:
+The CLI can book a consultation, force a failure in B or C, inspect persisted state, stop after A, resume after a restart, compensate a pending visit and reset the demo. The default patient is `patient-001`.
 
-- complete a successful A -> B -> C transfer;
-- force a B failure and show compensation of A;
-- force a C failure and show compensation of B followed by A;
-- inspect all persisted state;
-- stop after A, restart the program, and resume from the saved `PENDING_B` state;
-- manually compensate a pending chain;
-- reset the CSV store before a fresh demo.
-
-The default demo uses `alice` and `bob`. To use another data directory, pass it as the first argument:
+For another data directory:
 
 ```bash
-mvn -q compile exec:java -Dexec.args="/tmp/online-banking-data"
+mvn -q compile exec:java -Dexec.args="/tmp/telemedicine-data"
 ```
 
-## Test and coverage commands
+## Tests and coverage
 
 ```bash
 mvn -q test
 mvn -q verify -Pcoverage
 ```
 
-The tests are independent and create a clean temporary directory for every scenario. The coverage profile generates `target/site/jacoco/index.html` and checks at least 80% line coverage for the tested application code.
+The tests use temporary directories and cover the happy path, both compensation depths, persistence reload, invalid input, direct subsystem use and the administrative facade. The coverage profile generates `target/site/jacoco/index.html` and checks at least 80% line coverage.
 
-## Subsystems and classes
+## Subsystems
 
 | Part | Classes | Own persisted file |
 |---|---|---|
-| A Account Ledger | `Account`, `AccountLedger`, `AccountStore` | `accounts.csv` |
-| B Compliance Checker | `ComplianceCase`, `ComplianceChecker`, `ComplianceStore` | `compliance.csv` |
-| C Settlement Confirmer | `Settlement`, `SettlementConfirmer`, `SettlementStore` | `settlements.csv` |
-| Chain progress | `ChainRecord`, `ChainStore` | `chain.csv` |
+| A Appointment Scheduler / Patient Record | `Account`, `AccountLedger`, `AccountStore` | `accounts.csv` |
+| B Video Call Manager / Session Notes | `ComplianceCase`, `ComplianceChecker`, `ComplianceStore` | `compliance.csv` |
+| C E-Prescription Service / Billing | `Settlement`, `SettlementConfirmer`, `SettlementStore` | `settlements.csv` |
+| Workflow progress | `ChainRecord`, `ChainStore` | `chain.csv` |
 
-Every subsystem can be used directly. `BankingFacadeTest.directSubsystemsRemainUsable` calls the three subsystem services without a facade.
+The existing class names are kept so the Maven project stays small; their fields and behavior describe the assigned telemedicine components.
 
-## Facades
+## Facades and compensation
 
-`BankingFacade` is the common client facade. It validates input, reserves funds, runs compliance, confirms settlement, persists each stage and compensates the correct part of the chain when a later stage fails.
+`BankingFacade` is the client facade for the telemedicine workflow. `OperationsFacade` is the administrative facade for inspection, manual compensation and reset.
 
-`OperationsFacade` is the narrower administrative facade. It provides one inspection view, manual compensation and a reset operation for the live demo.
+If B fails after A, the appointment hold is released and the chain becomes `COMPENSATED_A`. If C fails after A and B, the video session is cancelled first, then the appointment hold is released; the chain becomes `COMPENSATED_B_A`.
 
-## Compensation behavior
-
-When B fails after A has committed, the persisted chain is `PENDING_B`. The facade releases the reservation in A and saves `COMPENSATED_A`.
-
-When C fails after A and B have committed, the persisted chain is `PENDING_C`. The facade cancels the approved compliance case in B first, then releases the reservation in A, and saves `COMPENSATED_B_A`.
-
-The failure switches in the CLI represent realistic downstream unavailability. An amount above 5000 is also rejected by the compliance business rule, and invalid input is rejected before any subsystem commits.
-
-## Persistence reload
-
-The `start` operation saves A's reservation and `PENDING_B` to disk. A new `BankingFacade` can then read that record after a restart and continue with B and C. This is covered by `reloadsPersistedPendingStateAndResumes`.
+Missing patient, clinician, slot or session notes is rejected before the chain starts. This is an additional realistic intake failure.
 
 ## Principle of Least Knowledge
 
-Before the facade, a client would need to know every subsystem and the correct order:
+Before the facade, a client had to know the order and rollback rules:
 
 ```java
-ledger.reserve("alice", amount);
-compliance.approve(request);
-settlement.confirm(request);
+appointmentScheduler.reserve(patient, clinician, slot);
+videoCallManager.start(request);
+ePrescriptionAndBilling.confirm(request);
 ```
-
-It would also need to know when to release the ledger or cancel compliance after a failure. That creates many friends and exposes the chain details.
 
 After the facade, the client has one immediate friend:
 
 ```java
-banking.execute(request, FailurePoint.NONE);
+telemedicine.execute(request, FailurePoint.NONE);
 ```
 
-The facade owns sequencing, persistence and compensation. The subsystems do not import or call one another.
+The facade owns sequencing, persistence and compensation. The subsystems remain independent.
 
 ## Facade versus Adapter
 
-An Adapter changes one existing interface into another interface that a client already expects. This assignment needs a Facade because the client needs one new, higher-level operation built from several independent operations. The banking facade coordinates order, durable progress and compensation; it does not merely rename a method or translate an interface.
+An Adapter translates one existing interface into another interface expected by a client. This task needs a Facade because one new high-level consultation operation must coordinate three independent services, persist progress and compensate partial work.
 
-## UML
+## UML and report
 
-The class diagram is available as the vector file [`docs/class-diagram.svg`](docs/class-diagram.svg).
-
-## Test scenarios
-
-- successful transfer reaches `COMPLETED` and changes both account balances;
-- B failure compensates A only;
-- C failure cancels B, then compensates A;
-- persisted `PENDING_B` survives a new facade instance and resumes;
-- invalid input is rejected before persistence;
-- all three subsystems work directly;
-- the administrative facade inspects and resets persisted state.
+The class diagram is [`docs/class-diagram.svg`](docs/class-diagram.svg). The full report is in [`REPORT.docx`](REPORT.docx) and [`REPORT.md`](REPORT.md).
 
 ## Author
 

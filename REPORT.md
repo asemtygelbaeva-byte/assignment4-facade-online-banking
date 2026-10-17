@@ -1,54 +1,54 @@
 # Assignment 4 Facade Report
 
-Student: Assem Tugelbay  
-Group: SE-2540  
-Domain: Online Banking
+**Student:** Assem Tugelbay  
+**Group:** SE-2540  
+**Topic:** 19 — Telemedicine
 
 ## Goal
 
-The application models one online bank transfer as a three-stage operation. The client calls one facade method, while three independent subsystems perform the real work:
+The program books an online medical consultation through one simple facade. The three assigned subsystems do the work:
 
-1. Account Ledger reserves money.
-2. Compliance Checker approves the transfer.
-3. Settlement Confirmer finalizes the operation.
+1. Appointment Scheduler and Patient Record hold the patient's appointment slot.
+2. Video Call Manager starts the video call and stores Session Notes.
+3. E-Prescription Service and Billing finalize the consultation.
 
-The state of every subsystem and the progress of the chain are stored in CSV files. This makes a restart testable and keeps the demo state visible.
+The state of each subsystem and the workflow progress are stored in CSV files. A new facade instance can therefore continue a visit after the program is restarted.
 
 ## Design
 
-The `BankingFacade` is the common workflow facade. It validates the request, runs A -> B -> C, writes a chain record after every committed step and performs compensation when a later step fails.
+`BankingFacade` is the common workflow facade. In this project its behavior is telemedicine-specific: it validates a consultation request, runs Appointment → Video Call → E-Prescription/Billing, saves a chain record after each committed step and compensates completed steps after a downstream failure.
 
-The `OperationsFacade` is an administrative facade. It combines persisted data into one inspection output, exposes manual compensation and resets the demo store.
+`OperationsFacade` is an administrative facade. It combines the persisted state into one inspection view, exposes manual compensation and resets the demo files.
 
-Each subsystem is independent and has three simple parts: an entity with legal status transitions, a business logic service and a persistence gateway. The subsystems never import one another. Only the facade knows the complete chain.
+Each subsystem has an entity with legal status transitions, a service and its own persistence gateway. The subsystems do not import or call one another. Only the facade knows the complete workflow.
 
 ## Compensation scenarios
 
-For a B failure, A has already reserved funds and the chain is stored as `PENDING_B`. The facade releases that reservation and records `COMPENSATED_A`.
+For a B failure, the patient appointment is already held and the chain is `PENDING_B`. The facade releases the appointment and records `COMPENSATED_A`.
 
-For a C failure, A is reserved and B is approved. The chain is stored as `PENDING_C`. The facade cancels B first and releases A second, then records `COMPENSATED_B_A`. The order is visible in the code and in the persisted statuses.
+For a C failure, the appointment is held and the video session notes are saved. The chain is `PENDING_C`. The facade cancels the video session first, releases the appointment second and records `COMPENSATED_B_A`.
 
-## Exceptions
+## Realistic validation failure
 
-Invalid transfer data is rejected before a chain is created. Compliance rejects transfers above 5000. The CLI also has explicit B and C failure controls so the examiner can demonstrate both compensation depths live.
+The facade rejects a request without a patient, clinician, slot or session notes before creating a chain record.
 
 ## Testing
 
-The JUnit tests use temporary directories, so every test starts with clean persisted state. They cover the happy path, both compensation depths, a persistence reload, invalid input, direct subsystem usage and the administrative facade. The custom helper `givenTransfer` makes test setup read like a small domain language. JaCoCo is configured in the `coverage` Maven profile with an 80% line coverage check.
+JUnit tests use a temporary directory for every scenario. They cover successful booking, both compensation depths, reload of a persisted `PENDING_B` visit, invalid input, direct use of all three subsystems and the administrative facade. The helper `givenVisit` keeps setup short and readable. JaCoCo is configured in the `coverage` Maven profile with an 80% line coverage check.
 
 ## Facade and Adapter
 
-An Adapter translates an existing interface into another interface expected by a client. This problem is different: the client needs a single higher-level operation that coordinates three services, persists progress and decides how to compensate partial work. Therefore the Facade pattern fits the intent. The client knows `BankingFacade`; it does not know the order or rollback rules of the three subsystems.
+An Adapter changes an existing interface into another interface expected by a client. This problem is different: the client needs one higher-level consultation operation that coordinates three services, persists progress and decides how to undo partial work. Therefore the Facade pattern matches the design.
 
 ## Live demonstration
 
 Run `mvn -q compile exec:java`, then choose:
 
-- `1` for a successful transfer;
-- `2` to fail B and show A compensation;
-- `3` to fail C and show B-then-A compensation;
-- `4` to inspect CSV-backed state;
+- `1` to book a successful consultation;
+- `2` to fail the video call manager and release A;
+- `3` to fail e-prescription/billing and cancel B before releasing A;
+- `4` to inspect CSV-backed patient, video-session, prescription/billing and chain state;
 - `5`, restart the program, then `6` to demonstrate persistence reload;
-- `8` to reset the store before a new demonstration.
+- `8` to reset the demo.
 
-The project is buildable with Maven and contains the complete source, tests and UML diagram.
+The project contains the complete source, tests, UML diagram and this report.
