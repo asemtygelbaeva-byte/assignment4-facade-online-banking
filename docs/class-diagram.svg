@@ -12,35 +12,35 @@
       <path d="M0,0 L10,3 L0,6 z" fill="#52657a" />
     </marker>
   </defs>
-  <text x="40" y="42" class="title">Assignment 4 Online Banking Facade</text>
+  <text x="40" y="42" class="title">Assignment 4 Telemedicine Facade — Topic 19</text>
   <rect x="40" y="85" width="190" height="95" rx="10" class="box" />
   <text x="60" y="118" class="title">Client</text>
-  <text x="60" y="145" class="text">BankingCli</text>
-  <text x="60" y="166" class="text">one transfer call</text>
+  <text x="60" y="145" class="text">Telemedicine CLI</text>
+  <text x="60" y="166" class="text">one booking call</text>
 
   <rect x="300" y="70" width="250" height="130" rx="10" class="facade" />
-  <text x="325" y="105" class="title">BankingFacade</text>
-  <text x="325" y="133" class="text">execute A -&gt; B -&gt; C</text>
+  <text x="325" y="105" class="title">Telemedicine Facade</text>
+  <text x="325" y="133" class="text">book A -&gt; B -&gt; C</text>
   <text x="325" y="156" class="text">persist progress</text>
   <text x="325" y="179" class="text">compensate on failure</text>
 
   <rect x="670" y="30" width="230" height="135" rx="10" class="box" />
   <text x="695" y="65" class="title">Subsystem A</text>
-  <text x="695" y="92" class="text">AccountLedger</text>
-  <text x="695" y="115" class="text">Account</text>
-  <text x="695" y="138" class="text">AccountStore</text>
+  <text x="695" y="92" class="text">Appointment Scheduler</text>
+  <text x="695" y="115" class="text">Patient Record</text>
+  <text x="695" y="138" class="text">Patient Record Store</text>
 
   <rect x="670" y="205" width="230" height="135" rx="10" class="box" />
   <text x="695" y="240" class="title">Subsystem B</text>
-  <text x="695" y="267" class="text">ComplianceChecker</text>
-  <text x="695" y="290" class="text">ComplianceCase</text>
-  <text x="695" y="313" class="text">ComplianceStore</text>
+  <text x="695" y="267" class="text">Video Call Manager</text>
+  <text x="695" y="290" class="text">Session Notes</text>
+  <text x="695" y="313" class="text">Session Notes Store</text>
 
   <rect x="670" y="380" width="230" height="135" rx="10" class="box" />
   <text x="695" y="415" class="title">Subsystem C</text>
-  <text x="695" y="442" class="text">SettlementConfirmer</text>
-  <text x="695" y="465" class="text">Settlement</text>
-  <text x="695" y="488" class="text">SettlementStore</text>
+  <text x="695" y="442" class="text">E-Prescription Service</text>
+  <text x="695" y="465" class="text">Billing</text>
+  <text x="695" y="488" class="text">Billing Store</text>
 
   <rect x="300" y="300" width="250" height="115" rx="10" class="facade" />
   <text x="325" y="335" class="title">OperationsFacade</text>
