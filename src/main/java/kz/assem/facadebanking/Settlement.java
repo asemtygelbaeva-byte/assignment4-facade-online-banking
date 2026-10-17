@@ -1,38 +1,40 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
-
 public final class Settlement {
-    public enum Status { NEW, CONFIRMED, CANCELLED }
+    public enum Status { NEW, PRESCRIPTION_SENT, BILLED, CANCELLED }
 
     private final String transferId;
-    private final BigDecimal amount;
+    private final String clinician;
+    private final String slot;
     private Status status;
 
-    public Settlement(String transferId, BigDecimal amount, Status status) {
+    public Settlement(String transferId, String clinician, String slot, Status status) {
         this.transferId = transferId;
-        this.amount = amount;
+        this.clinician = clinician;
+        this.slot = slot;
         this.status = status;
     }
 
     public void confirm() {
-        if (status != Status.NEW) throw new BankingException("Settlement cannot be confirmed");
-        status = Status.CONFIRMED;
+        if (status != Status.NEW) throw new BankingException("E-prescription cannot be sent");
+        status = Status.PRESCRIPTION_SENT;
+        status = Status.BILLED;
     }
 
     public void cancel() {
-        if (status != Status.NEW && status != Status.CONFIRMED) {
-            throw new BankingException("Settlement cannot be cancelled");
+        if (status != Status.NEW && status != Status.PRESCRIPTION_SENT) {
+            throw new BankingException("Prescription billing cannot be cancelled");
         }
         status = Status.CANCELLED;
     }
 
     public String transferId() { return transferId; }
-    public BigDecimal amount() { return amount; }
+    public String clinician() { return clinician; }
+    public String slot() { return slot; }
     public Status status() { return status; }
 
     @Override
     public String toString() {
-        return transferId + " amount=" + amount + " status=" + status;
+        return transferId + " clinician=" + clinician + " slot=" + slot + " status=" + status;
     }
 }

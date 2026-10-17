@@ -1,6 +1,5 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,30 +14,27 @@ public final class AccountLedger {
     public void seedDefaults() {
         if (store.all().isEmpty()) {
             store.saveAll(List.of(
-                    new Account("alice", new BigDecimal("1000.00"), BigDecimal.ZERO, Account.Status.ACTIVE),
-                    new Account("bob", new BigDecimal("200.00"), BigDecimal.ZERO, Account.Status.ACTIVE)));
+                    new Account("patient-001", "Aigerim", "", "", Account.Status.REGISTERED),
+                    new Account("patient-002", "Dias", "", "", Account.Status.REGISTERED)));
         }
     }
 
-    public void reserve(String source, BigDecimal amount) {
+    public void reserve(String patientId, String clinician, String slot) {
         List<Account> accounts = new ArrayList<>(store.all());
-        Account account = find(accounts, source);
-        account.reserve(amount);
+        Account account = find(accounts, patientId);
+        account.hold(clinician, slot);
         store.saveAll(accounts);
     }
 
-    public void release(String source, BigDecimal amount) {
+    public void release(String patientId) {
         List<Account> accounts = new ArrayList<>(store.all());
-        find(accounts, source).release(amount);
+        find(accounts, patientId).release();
         store.saveAll(accounts);
     }
 
-    public void complete(String source, String target, BigDecimal amount) {
+    public void complete(String patientId) {
         List<Account> accounts = new ArrayList<>(store.all());
-        Account sourceAccount = find(accounts, source);
-        Account targetAccount = find(accounts, target);
-        sourceAccount.complete(amount);
-        targetAccount.credit(amount);
+        find(accounts, patientId).complete();
         store.saveAll(accounts);
     }
 
@@ -48,6 +44,6 @@ public final class AccountLedger {
 
     private Account find(List<Account> accounts, String id) {
         return accounts.stream().filter(account -> account.id().equals(id)).findFirst()
-                .orElseThrow(() -> new InvalidTransferException("Unknown account: " + id));
+                .orElseThrow(() -> new InvalidTransferException("Unknown patient: " + id));
     }
 }

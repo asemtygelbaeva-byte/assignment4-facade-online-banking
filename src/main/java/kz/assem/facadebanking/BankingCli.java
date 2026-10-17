@@ -1,6 +1,5 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.Scanner;
 
@@ -18,7 +17,7 @@ public final class BankingCli {
         ledger.seedDefaults();
 
         try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("Online Banking Facade demo");
+            System.out.println("Telemedicine Facade demo");
             boolean running = true;
             while (running) {
                 printMenu();
@@ -31,7 +30,7 @@ public final class BankingCli {
                         case "4" -> System.out.println(operations.inspect());
                         case "5" -> startOnly(scanner, banking);
                         case "6" -> resume(scanner, banking);
-                        case "7" -> operations.manuallyCompensate(read(scanner, "Transfer id"));
+                        case "7" -> operations.manuallyCompensate(read(scanner, "Visit id"));
                         case "8" -> { operations.reset(); ledger.seedDefaults(); System.out.println("Store reset."); }
                         case "0" -> running = false;
                         default -> System.out.println("Choose 0-8.");
@@ -46,24 +45,27 @@ public final class BankingCli {
     private static void runTransfer(Scanner scanner, BankingFacade banking, FailurePoint failurePoint) {
         TransferRequest request = request(scanner);
         banking.execute(request, failurePoint);
-        System.out.println("A-B-C completed: " + request.id());
+        System.out.println("Consultation workflow A-B-C completed: " + request.id());
     }
 
     private static void startOnly(Scanner scanner, BankingFacade banking) {
         TransferRequest request = request(scanner);
         banking.start(request);
-        System.out.println("A committed. Restart the app, then use option 6 with " + request.id());
+        System.out.println("Appointment slot held. Restart the app, then use option 6 with " + request.id());
     }
 
     private static void resume(Scanner scanner, BankingFacade banking) {
-        banking.resume(read(scanner, "Transfer id"), FailurePoint.NONE);
-        System.out.println("Pending transfer resumed.");
+        banking.resume(read(scanner, "Visit id"), FailurePoint.NONE);
+        System.out.println("Pending consultation resumed.");
     }
 
     private static TransferRequest request(Scanner scanner) {
-        String id = read(scanner, "Transfer id (example tx-1)");
-        String amount = read(scanner, "Amount");
-        return new TransferRequest(id, "alice", "bob", new BigDecimal(amount));
+        String id = read(scanner, "Visit id (example visit-1)");
+        String patient = read(scanner, "Patient id (patient-001)");
+        String clinician = read(scanner, "Clinician");
+        String slot = read(scanner, "Appointment slot");
+        String notes = read(scanner, "Session notes");
+        return new TransferRequest(id, patient, clinician, slot, notes);
     }
 
     private static String read(Scanner scanner, String label) {
@@ -72,7 +74,7 @@ public final class BankingCli {
     }
 
     private static void printMenu() {
-        System.out.println("1 success  2 fail B (A compensation)  3 fail C (B then A compensation)");
+        System.out.println("1 book consultation  2 fail B (release A)  3 fail C (cancel B then release A)");
         System.out.println("4 inspect persisted state  5 stop after A  6 resume  7 manual compensation  8 reset  0 exit");
         System.out.print("> ");
     }

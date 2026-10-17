@@ -1,6 +1,5 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public final class BankingFacade {
@@ -25,11 +24,11 @@ public final class BankingFacade {
     public void start(TransferRequest request) {
         validate(request);
         if (chains.all().stream().anyMatch(record -> record.id().equals(request.id()))) {
-            throw new InvalidTransferException("Transfer id already exists: " + request.id());
+            throw new InvalidTransferException("Visit id already exists: " + request.id());
         }
-        ledger.reserve(request.sourceAccount(), request.amount());
-        chains.save(new ChainRecord(request.id(), request.sourceAccount(), request.targetAccount(),
-                request.amount(), ChainRecord.Stage.PENDING_B, "A committed: funds reserved"));
+        ledger.reserve(request.patientId(), request.clinician(), request.slot());
+        chains.save(new ChainRecord(request.id(), request.patientId(), request.clinician(), request.slot(),
+                request.sessionNotes(), ChainRecord.Stage.PENDING_B, "A committed: appointment slot held"));
     }
 
     public void resume(String transferId, FailurePoint failurePoint) {
@@ -37,21 +36,21 @@ public final class BankingFacade {
         try {
             if (record.stage() == ChainRecord.Stage.PENDING_B) {
                 if (failurePoint == FailurePoint.B) {
-                    throw new SubsystemFailureException("B is unavailable: compliance check failed");
+                    throw new SubsystemFailureException("B is unavailable: video call manager failed");
                 }
                 compliance.approve(toRequest(record));
-                chains.save(new ChainRecord(record.id(), record.source(), record.target(), record.amount(),
-                        ChainRecord.Stage.PENDING_C, "B committed: transfer approved"));
+                chains.save(new ChainRecord(record.id(), record.patientId(), record.clinician(), record.slot(),
+                        record.sessionNotes(), ChainRecord.Stage.PENDING_C, "B committed: video call and notes saved"));
                 record = chains.find(transferId);
             }
             if (record.stage() == ChainRecord.Stage.PENDING_C) {
                 if (failurePoint == FailurePoint.C) {
-                    throw new SubsystemFailureException("C is unavailable: settlement failed");
+                    throw new SubsystemFailureException("C is unavailable: e-prescription or billing failed");
                 }
                 settlement.confirm(toRequest(record));
-                ledger.complete(record.source(), record.target(), record.amount());
-                chains.save(new ChainRecord(record.id(), record.source(), record.target(), record.amount(),
-                        ChainRecord.Stage.COMPLETED, "A-B-C completed"));
+                ledger.complete(record.patientId());
+                chains.save(new ChainRecord(record.id(), record.patientId(), record.clinician(), record.slot(),
+                        record.sessionNotes(), ChainRecord.Stage.COMPLETED, "A-B-C telemedicine visit completed"));
             }
         } catch (BankingException exception) {
             compensatePersisted(transferId);
@@ -62,14 +61,14 @@ public final class BankingFacade {
     public void compensatePersisted(String transferId) {
         ChainRecord record = chains.find(transferId);
         if (record.stage() == ChainRecord.Stage.PENDING_B) {
-            ledger.release(record.source(), record.amount());
-            chains.save(new ChainRecord(record.id(), record.source(), record.target(), record.amount(),
-                    ChainRecord.Stage.COMPENSATED_A, "B failed: A released"));
+            ledger.release(record.patientId());
+            chains.save(new ChainRecord(record.id(), record.patientId(), record.clinician(), record.slot(),
+                    record.sessionNotes(), ChainRecord.Stage.COMPENSATED_A, "B failed: appointment released"));
         } else if (record.stage() == ChainRecord.Stage.PENDING_C) {
             compliance.cancel(record.id());
-            ledger.release(record.source(), record.amount());
-            chains.save(new ChainRecord(record.id(), record.source(), record.target(), record.amount(),
-                    ChainRecord.Stage.COMPENSATED_B_A, "C failed: B cancelled, then A released"));
+            ledger.release(record.patientId());
+            chains.save(new ChainRecord(record.id(), record.patientId(), record.clinician(), record.slot(),
+                    record.sessionNotes(), ChainRecord.Stage.COMPENSATED_B_A, "C failed: video session cancelled, then appointment released"));
         }
     }
 
@@ -78,17 +77,18 @@ public final class BankingFacade {
     public void clearChains() { chains.clear(); }
 
     private TransferRequest toRequest(ChainRecord record) {
-        return new TransferRequest(record.id(), record.source(), record.target(), record.amount());
+        return new TransferRequest(record.id(), record.patientId(), record.clinician(), record.slot(), record.sessionNotes());
     }
 
     private void validate(TransferRequest request) {
-        if (request.id() == null || request.id().isBlank()) throw new InvalidTransferException("Transfer id is required");
-        if (request.sourceAccount() == null || request.targetAccount() == null
-                || request.sourceAccount().equals(request.targetAccount())) {
-            throw new InvalidTransferException("Source and target accounts must be different");
+        if (request.id() == null || request.id().isBlank()) throw new InvalidTransferException("Visit id is required");
+        if (request.patientId() == null || request.patientId().isBlank()
+                || request.clinician() == null || request.clinician().isBlank()
+                || request.slot() == null || request.slot().isBlank()) {
+            throw new InvalidTransferException("Patient, clinician and appointment slot are required");
         }
-        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidTransferException("Amount must be positive");
+        if (request.sessionNotes() == null || request.sessionNotes().isBlank()) {
+            throw new InvalidTransferException("Session notes are required");
         }
     }
 }

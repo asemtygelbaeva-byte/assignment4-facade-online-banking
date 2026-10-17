@@ -1,6 +1,5 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
@@ -12,11 +11,9 @@ public final class ComplianceChecker {
     }
 
     public ComplianceCase approve(TransferRequest request) {
-        if (request.amount().compareTo(new BigDecimal("5000")) > 0) {
-            throw new SubsystemFailureException("Compliance rejected a transfer above 5000");
-        }
-        ComplianceCase complianceCase = new ComplianceCase(request.id(), ComplianceCase.Status.NEW, "waiting");
-        complianceCase.approve();
+        ComplianceCase complianceCase = new ComplianceCase(request.id(), ComplianceCase.Status.NEW, "");
+        complianceCase.connect();
+        complianceCase.saveNotes(request.sessionNotes());
         ArrayList<ComplianceCase> cases = new ArrayList<>(store.all());
         cases.add(complianceCase);
         store.saveAll(cases);

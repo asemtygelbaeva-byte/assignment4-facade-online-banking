@@ -1,62 +1,56 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
-
 public final class Account {
-    public enum Status { ACTIVE, RESERVED, COMPLETED, CANCELLED }
+    public enum Status { REGISTERED, HELD, COMPLETED, CANCELLED }
 
     private final String id;
-    private BigDecimal balance;
-    private BigDecimal reserved;
+    private final String patientName;
+    private String clinician;
+    private String slot;
     private Status status;
 
-    public Account(String id, BigDecimal balance, BigDecimal reserved, Status status) {
+    public Account(String id, String patientName, String clinician, String slot, Status status) {
         this.id = id;
-        this.balance = balance;
-        this.reserved = reserved;
+        this.patientName = patientName;
+        this.clinician = clinician;
+        this.slot = slot;
         this.status = status;
     }
 
-    public void reserve(BigDecimal amount) {
-        if (status == Status.CANCELLED || balance.subtract(reserved).compareTo(amount) < 0) {
-            throw new InvalidTransferException("Account cannot reserve " + amount);
+    public void hold(String clinician, String slot) {
+        if (status != Status.REGISTERED) {
+            throw new InvalidTransferException("Patient is not available for a new visit");
         }
-        reserved = reserved.add(amount);
-        status = Status.RESERVED;
+        this.clinician = clinician;
+        this.slot = slot;
+        status = Status.HELD;
     }
 
-    public void release(BigDecimal amount) {
-        if (status != Status.RESERVED || reserved.compareTo(amount) < 0) {
-            throw new BankingException("Account has no matching reservation");
+    public void release() {
+        if (status != Status.HELD) {
+            throw new BankingException("Patient visit is not held");
         }
-        reserved = reserved.subtract(amount);
-        status = Status.ACTIVE;
+        clinician = "";
+        slot = "";
+        status = Status.REGISTERED;
     }
 
-    public void complete(BigDecimal amount) {
-        if (status != Status.RESERVED || reserved.compareTo(amount) < 0) {
-            throw new BankingException("Account cannot complete this transfer");
+    public void complete() {
+        if (status != Status.HELD) {
+            throw new BankingException("Patient visit cannot be completed");
         }
-        reserved = reserved.subtract(amount);
-        balance = balance.subtract(amount);
-        status = Status.COMPLETED;
-    }
-
-    public void credit(BigDecimal amount) {
-        if (status == Status.CANCELLED) {
-            throw new BankingException("Cancelled account cannot receive money");
-        }
-        balance = balance.add(amount);
         status = Status.COMPLETED;
     }
 
     public String id() { return id; }
-    public BigDecimal balance() { return balance; }
-    public BigDecimal reserved() { return reserved; }
+    public String patientName() { return patientName; }
+    public String clinician() { return clinician; }
+    public String slot() { return slot; }
     public Status status() { return status; }
 
     @Override
     public String toString() {
-        return id + " balance=" + balance + " reserved=" + reserved + " status=" + status;
+        return id + " patient=" + patientName + " clinician=" + clinician
+                + " slot=" + slot + " status=" + status;
     }
 }

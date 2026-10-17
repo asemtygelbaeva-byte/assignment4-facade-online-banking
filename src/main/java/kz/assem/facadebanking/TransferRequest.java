@@ -1,6 +1,4 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
-
-public record TransferRequest(String id, String sourceAccount, String targetAccount, BigDecimal amount) {
+public record TransferRequest(String id, String patientId, String clinician, String slot, String sessionNotes) {
 }

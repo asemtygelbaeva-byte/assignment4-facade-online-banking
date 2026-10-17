@@ -1,6 +1,5 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,8 +16,8 @@ public final class ChainStore {
         List<ChainRecord> records = new ArrayList<>();
         for (String line : files.read(FILE)) {
             String[] parts = line.split("\\|", -1);
-            records.add(new ChainRecord(parts[0], parts[1], parts[2], new BigDecimal(parts[3]),
-                    ChainRecord.Stage.valueOf(parts[4]), parts[5]));
+            records.add(new ChainRecord(parts[0], parts[1], parts[2], parts[3], parts[4],
+                    ChainRecord.Stage.valueOf(parts[5]), parts[6]));
         }
         return records;
     }
@@ -32,8 +31,8 @@ public final class ChainStore {
         ArrayList<ChainRecord> records = new ArrayList<>(all());
         records.removeIf(item -> item.id().equals(record.id()));
         records.add(record);
-        files.write(FILE, records.stream().map(item -> String.join("|", item.id(), item.source(), item.target(),
-                item.amount().toPlainString(), item.stage().name(), item.message())).toList());
+        files.write(FILE, records.stream().map(item -> String.join("|", item.id(), item.patientId(),
+                item.clinician(), item.slot(), item.sessionNotes(), item.stage().name(), item.message())).toList());
     }
 
     public void clear() { files.clear(FILE); }

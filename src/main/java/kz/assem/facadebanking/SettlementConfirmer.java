@@ -11,7 +11,7 @@ public final class SettlementConfirmer {
     }
 
     public Settlement confirm(TransferRequest request) {
-        Settlement settlement = new Settlement(request.id(), request.amount(), Settlement.Status.NEW);
+        Settlement settlement = new Settlement(request.id(), request.clinician(), request.slot(), Settlement.Status.NEW);
         settlement.confirm();
         ArrayList<Settlement> settlements = new ArrayList<>(store.all());
         settlements.add(settlement);

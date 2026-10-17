@@ -1,6 +1,5 @@
 package kz.assem.facadebanking;
 
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +16,7 @@ public final class SettlementStore {
         List<Settlement> settlements = new ArrayList<>();
         for (String line : files.read(FILE)) {
             String[] parts = line.split("\\|", -1);
-            settlements.add(new Settlement(parts[0], new BigDecimal(parts[1]), Settlement.Status.valueOf(parts[2])));
+            settlements.add(new Settlement(parts[0], parts[1], parts[2], Settlement.Status.valueOf(parts[3])));
         }
         return settlements;
     }
@@ -28,8 +27,8 @@ public final class SettlementStore {
     }
 
     public void saveAll(List<Settlement> settlements) {
-        files.write(FILE, settlements.stream().map(item -> String.join("|", item.transferId(),
-                item.amount().toPlainString(), item.status().name())).toList());
+        files.write(FILE, settlements.stream().map(item -> String.join("|", item.transferId(), item.clinician(),
+                item.slot(), item.status().name())).toList());
     }
 
     public void clear() { files.clear(FILE); }

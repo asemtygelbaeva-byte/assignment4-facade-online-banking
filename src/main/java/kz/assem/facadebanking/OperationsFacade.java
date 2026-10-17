@@ -16,11 +16,11 @@ public final class OperationsFacade {
 
     public String inspect() {
         StringBuilder output = new StringBuilder();
-        output.append("ACCOUNTS\n");
+        output.append("PATIENT REGISTRY\n");
         ledger.accounts().forEach(account -> output.append("  ").append(account).append('\n'));
-        output.append("COMPLIANCE\n");
+        output.append("VIDEO CALLS AND SESSION NOTES\n");
         compliance.cases().forEach(item -> output.append("  ").append(item).append('\n'));
-        output.append("SETTLEMENTS\n");
+        output.append("E-PRESCRIPTIONS AND BILLING\n");
         settlement.settlements().forEach(item -> output.append("  ").append(item).append('\n'));
         output.append("CHAIN\n");
         banking.chains().forEach(item -> output.append("  ").append(item.id()).append(" stage=")
